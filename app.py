@@ -37,14 +37,14 @@ MODEL_NAME = "deepseek/deepseek-r1:free"
 
 # Instrucciones para el sistema (modelo)
 INSTRUCCIONES_UML = """
-Eres un asistente experto en integración de sistemas mecatrónicos experto en UML y SysUML. Un alumno ha descrito un sistema con árbol de funciones, storyboard y una selección técnica mediante la matriz de Pugh.
+Eres un asistente experto en integración de sistemas mecatrónicos y diseño de software. Un alumno ha descrito un sistema con árbol de funciones, storyboard y una selección técnica mediante la matriz de Pugh.
 
 Tu tarea es generar un diagrama UML en formato PlantUML en español. Usa actores, clases, componentes, actividades o nodos según el tipo solicitado.
 
-Devuelve únicamente el código UML entre @startuml y @enduml.
+Incluye siempre @startuml al inicio y @enduml al final del código UML. No incluyas explicaciones ni texto adicional.
 """
 
-# Función para obtener el código UML desde el LLM
+# Llamada al LLM
 def obtener_diagrama_uml(entrada_usuario, tipo_diagrama):
     prompt = f"""
 Sistema descrito por el alumno:
@@ -129,6 +129,14 @@ if submitted:
 
     codigo_uml = obtener_diagrama_uml(entrada, tipo_diagrama)
 
+    # Forzar delimitadores si el modelo los omite
+    if "@startuml" not in codigo_uml:
+        codigo_uml = "@startuml\n" + codigo_uml.strip()
+
+    if "@enduml" not in codigo_uml:
+        codigo_uml += "\n@enduml"
+
+    # Verificar si el contenido es válido
     if "@startuml" in codigo_uml and "@enduml" in codigo_uml:
         st.subheader("🖼️ Imagen del diagrama UML generada:")
         uml_url = "https://www.plantuml.com/plantuml/png/" + plantuml_encode(codigo_uml)
