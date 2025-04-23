@@ -1,16 +1,41 @@
 import streamlit as st
-import os
-import subprocess
 from openai import OpenAI
+import zlib
 
+# Configuración de página
+st.set_page_config(page_title="Mentor-AI Diagramas UML", layout="wide")
+st.title("🤖 Mentor-AI - Generador de Diagramas UML")
+st.markdown("Creadores: Dra. J. Isabel Méndez Garduño & M.Sc. Miguel de J. Ramírez C., CMfgT")
+
+st.subheader("Asistente inteligente para visualizar tu sistema")
+
+st.markdown(
+    """
+    Este asistente utiliza inteligencia artificial para ayudarte a generar diagramas UML a partir de la información clave de tu proyecto.
+    
+    **Entradas requeridas:**  
+    • Árbol de funciones  
+    • Storyboard del usuario  
+    • Concepto ganador derivado de la matriz de Pugh  
+    
+    **Diagramas disponibles:**  
+    - Casos de Uso  
+    - Actividades  
+    - Máquina de Estados  
+    - Clases  
+    - Componentes  
+    - Deployment
+    
+    Completa el formulario y deja que el asistente genere automáticamente el diagrama en formato visual.
+    """
+)
 
 # Leer la API Key desde Streamlit Secrets
 API_KEY = st.secrets["OPENROUTER_API_KEY"]
 API_BASE = "https://openrouter.ai/api/v1"
 MODEL_NAME = "deepseek/deepseek-r1:free"
-PLANTUML_JAR = "plantuml.jar"  
 
-# Instrucción base del sistema
+# Instrucciones para el sistema (modelo)
 INSTRUCCIONES_UML = """
 Eres un asistente experto en integración de sistemas mecatrónicos experto en UML y SysUML. Un alumno ha descrito un sistema con árbol de funciones, storyboard y una selección técnica mediante la matriz de Pugh.
 
@@ -19,7 +44,7 @@ Tu tarea es generar un diagrama UML en formato PlantUML en español. Usa actores
 Devuelve únicamente el código UML entre @startuml y @enduml.
 """
 
-# Llamada al LLM
+# Función para obtener el código UML desde el LLM
 def obtener_diagrama_uml(entrada_usuario, tipo_diagrama):
     prompt = f"""
 Sistema descrito por el alumno:
@@ -47,8 +72,8 @@ Genera el código UML correspondiente.
             model=MODEL_NAME,
             messages=mensajes,
             extra_headers={
-                "HTTP-Referer": "<YOUR_SITE_URL>",
-                "X-Title": "<YOUR_SITE_NAME>"
+                "HTTP-Referer": "https://mentor-ai-uml.streamlit.app",
+                "X-Title": "Mentor-AI UML Generator"
             }
         )
         if completion and completion.choices:
@@ -58,53 +83,31 @@ Genera el código UML correspondiente.
     except Exception as e:
         return f"❌ Error al conectarse con el modelo: {str(e)}"
 
-# Función para guardar y renderizar imagen UML
-def generar_imagen_uml(codigo_uml, nombre_archivo):
-    uml_file = f"{nombre_archivo}.txt"
-    with open(uml_file, "w", encoding="utf-8") as f:
-        f.write(codigo_uml)
+# Codificación PlantUML para la API online
+def plantuml_encode(text):
+    def deflate_and_encode(string):
+        data = zlib.compress(string.encode("utf-8"))
+        data = data[2:-4]
+        return encode_base64(data)
 
-    try:
-        subprocess.run(["java", "-jar", PLANTUML_JAR, uml_file], check=True)
-        imagen_generada = f"{nombre_archivo}.png"
-        if os.path.exists(imagen_generada):
-            return imagen_generada
-        else:
-            return None
-    except subprocess.CalledProcessError as e:
-        st.error(f"Error al generar imagen UML: {e}")
-        return None
+    def encode_base64(data):
+        alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_"
+        res = ""
+        buffer = 0
+        bits_left = 0
+        for byte in data:
+            buffer = (buffer << 8) | byte
+            bits_left += 8
+            while bits_left >= 6:
+                res += alphabet[(buffer >> (bits_left - 6)) & 0x3F]
+                bits_left -= 6
+        if bits_left > 0:
+            res += alphabet[(buffer << (6 - bits_left)) & 0x3F]
+        return res
 
-# Configuración de página
-st.set_page_config(page_title="Mentor-AI Diagramas UML", layout="wide")
+    return deflate_and_encode(text)
 
-st.title("🤖 Mentor-AI - Generador de Diagramas UML")
-st.markdown("Creadores: Dra. J. Isabel Méndez Garduño & M.Sc. Miguel de J. Ramírez C., CMfgT")
-
-st.subheader("Asistente inteligente para visualizar tu sistema")
-
-st.markdown(
-    """
-    Este asistente utiliza inteligencia artificial para ayudarte a generar diagramas UML a partir de la información clave de tu proyecto.
-    
-    **Entradas requeridas:**  
-    • Árbol de funciones  
-    • Storyboard del usuario  
-    • Concepto ganador derivado de la matriz de Pugh  
-    
-    **Diagramas disponibles:**  
-    - Casos de Uso  
-    - Actividades  
-    - Máquina de Estados  
-    - Clases  
-    - Componentes  
-    - Deployment
-    
-    Completa el formulario y deja que el asistente genere automáticamente el diagrama en formato visual.
-    """
-)
-
-
+# Formulario del usuario
 with st.form("formulario_uml"):
     proyecto = st.text_input("Nombre del proyecto")
     arbol = st.text_area("Árbol de funciones")
@@ -123,21 +126,17 @@ if submitted:
         "storyboard": storyboard,
         "concepto": concepto
     }
-    #st.subheader("📄 Código UML generado:")
+
     codigo_uml = obtener_diagrama_uml(entrada, tipo_diagrama)
-    #st.code(codigo_uml, language='text')
 
     if "@startuml" in codigo_uml and "@enduml" in codigo_uml:
-        st.subheader("🖼️ Imagen del diagrama:")
-        nombre_archivo = f"uml_{tipo_diagrama.lower().replace(' ', '_')}"
-        imagen_path = generar_imagen_uml(codigo_uml, nombre_archivo)
+        st.subheader("🖼️ Imagen del diagrama UML generada:")
+        uml_url = "https://www.plantuml.com/plantuml/png/" + plantuml_encode(codigo_uml)
+        st.image(uml_url, caption=f"Diagrama UML: {tipo_diagrama}", use_container_width=True)
 
-        if imagen_path:
-            st.image(imagen_path, caption=f"Diagrama UML: {tipo_diagrama}", use_container_width=True)
-            with open(imagen_path, "rb") as f:
-                st.download_button("📥 Descargar imagen", f, file_name=imagen_path, mime="image/png")
-        else:
-            st.warning("No se pudo generar la imagen del diagrama.")
+        with st.expander("📄 Ver código UML (opcional)"):
+            st.code(codigo_uml, language='text')
+
+        st.markdown(f"[Haz clic aquí para abrir el diagrama en una nueva pestaña]({uml_url})")
     else:
-        st.warning("El código UML no contiene una estructura válida con @startuml y @enduml.")
-
+        st.warning("El código UML generado no contiene una estructura válida con @startuml y @enduml.")
