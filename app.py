@@ -26,6 +26,8 @@ st.markdown(
     - Componentes  
     - Deployment
     - Comunicaciones
+
+    
     Completa el formulario y deja que el asistente genere automáticamente el diagrama en formato visual.
     """
 )
