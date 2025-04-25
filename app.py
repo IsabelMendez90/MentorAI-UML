@@ -25,7 +25,7 @@ st.markdown(
     - Clases  
     - Componentes  
     - Deployment
-    
+    - Comunicaciones
     Completa el formulario y deja que el asistente genere automáticamente el diagrama en formato visual.
     """
 )
@@ -39,7 +39,7 @@ MODEL_NAME = "deepseek/deepseek-r1:free"
 INSTRUCCIONES_UML = """
 Eres un asistente experto en integración de sistemas mecatrónicos y diseño de software. Un alumno ha descrito un sistema con árbol de funciones, storyboard y una selección técnica mediante la matriz de Pugh.
 
-Tu tarea es generar un diagrama UML en formato PlantUML en español. Usa actores, clases, componentes, actividades o nodos según el tipo solicitado.
+Tu tarea es generar un diagrama UML en formato PlantUML en español. Usa actores, clases, componentes, actividades, nodos o comunicaciones según el tipo solicitado.
 
 Incluye siempre @startuml al inicio y @enduml al final del código UML. No incluyas explicaciones ni texto adicional.
 """
@@ -115,7 +115,7 @@ with st.form("formulario_uml"):
     concepto = st.text_area("Concepto técnico ganador (matriz de Pugh)")
     tipo_diagrama = st.selectbox("Selecciona el tipo de diagrama UML", [
         "Casos de Uso", "Actividades", "Máquina de Estados",
-        "Clases", "Componentes", "Deployment"
+        "Clases", "Componentes", "Deployment", "Comunicaciones"
     ])
     submitted = st.form_submit_button("Generar Diagrama")
 
