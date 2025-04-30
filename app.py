@@ -4,7 +4,7 @@ import zlib
 
 # Configuración de página
 st.set_page_config(page_title="Mentor-AI Diagramas UML", layout="wide")
-st.title("🤖 Mentor-AI - Generador de Diagramas UML")
+st.title("🤖 AI Challenge Mentor - Generador de Diagramas UML")
 st.markdown("Creadores: Dra. J. Isabel Méndez Garduño & M.Sc. Miguel de J. Ramírez C., CMfgT")
 
 st.subheader("Asistente inteligente para visualizar tu sistema")
